@@ -1,7 +1,21 @@
 export type SignupInput = {
   name: string;
   email: string;
-  password: string;
+  password?: string;
+  authProvider?: "credentials" | "google";
+  googleId?: string;
+  isVerified?: boolean;
+  otp?:string;
+  otpExpires?:Date;
+};
+
+export type GoogleUserPayload = {
+  email: string;
+  name: string;
+  sub: string;
+  isVerified?: boolean;
+  picture?: string;
+  email_verified: boolean;
 };
 
 export type VerifyOtpInput = {
@@ -21,4 +35,21 @@ export type ActionResult<T = void> = {
   errors?: Record<string, string[]>;
 };
 
-export type LoginInput = Pick<SignupInput, "email" | "password">;
+export type UpdatePasswordInput = {
+  email: string;
+  code: string;
+  password: string;
+  confirmPassword : string;
+};
+
+
+export type LoginInput = {
+  email: string;
+  password: string;
+};
+
+export type UserSignupForm = {
+  name: string;
+  email: string;
+  password: string;
+};

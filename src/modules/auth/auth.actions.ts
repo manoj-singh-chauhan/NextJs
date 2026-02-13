@@ -1,7 +1,7 @@
 "use server";
 import { connectDB } from "@/core/db";
 import { cookies } from "next/headers";
-import { signupSchema, loginSchema } from "./auth.schema";
+import { signupSchema, loginSchema,newPasswordSchema} from "./auth.schema";
 import { authService } from "./auth.service";
 import {
   SignupInput,
@@ -9,7 +9,11 @@ import {
   AuthResponseData,
   VerifyOtpInput,
   LoginInput,
+  UpdatePasswordInput,
+  GoogleUserPayload,
 } from "./auth.types";
+import { verifyGoogleToken } from "@/lib/google";
+
 
 export async function signupAction(
   data: SignupInput,
@@ -29,7 +33,7 @@ export async function signupAction(
     return await authService.signup(parsed.data);
   } catch (error: unknown) {
     const errorMessage =
-      error instanceof Error ? error.message : "server error";
+    error instanceof Error ? error.message : "server error";
     console.error("auth error:", errorMessage);
 
     return {
@@ -44,6 +48,7 @@ export async function verifyOtpAction(
 ): Promise<ActionResult> {
   try {
     await connectDB();
+    
     if (!data.email || !data.otp || data.otp.length !== 6) {
       return {
         success: false,
@@ -123,5 +128,118 @@ export async function loginAction(
   } catch (error: unknown) {
     console.error("login error : ", error);
     return { success: false, message: "An error occurred during login." };
+  }
+}
+
+export async function forgotPasswordAction(
+  email: string, 
+  captchaToken: string
+): Promise<ActionResult> {
+  try {
+    await connectDB();
+
+    if (!email || !captchaToken) {
+      return { success: false, message: "Email and Captcha are required." };
+    }
+
+    return await authService.forgotPasswordRequest(email, captchaToken);
+  } catch (error) {
+    console.error("Forgot Password Action Error:", error);
+    return { success: false, message: "An error occurred. Please try again." };
+  }
+}
+
+export async function verifyResetOtpAction(email: string, otp: string): Promise<ActionResult> {
+  try {
+    await connectDB();
+    
+    if (!email || !otp) {
+      return { success: false, message: "Email and code are required." };
+    }
+
+    return await authService.verifyResetOtp(email, otp);
+  } catch (error) {
+    console.error("server error : ",error);
+    return { success: false, message: "Server error. Please try again." };
+  }
+}
+
+export async function resendResetOtpAction(email: string): Promise<ActionResult> {
+  try {
+    await connectDB();
+
+    if (!email) {
+      return { success: false, message: "Email is required." };
+    }
+
+    return await authService.resendResetOtp(email);
+  } catch (error) {
+    console.error("Resend Reset OTP Action Error:", error);
+    return { success: false, message: "An error occurred. Please try again." };
+  }
+}
+
+export async function updatePasswordAction(
+  data: UpdatePasswordInput
+): Promise<ActionResult> {
+  try {
+    await connectDB();
+
+    const parsed = newPasswordSchema.safeParse(data);
+    if (!parsed.success) {
+      return {
+        success: false,
+        message: "Validation failed.",
+        errors: parsed.error.flatten().fieldErrors,
+      };
+    }
+
+    return await authService.updatePassword(parsed.data);
+  } catch (error) {
+    console.error("Update Password Action Error:", error);
+    return { success: false, message: "An error occurred. Please try again." };
+  }
+}
+
+export async function googleLoginAction(token: string): Promise<ActionResult<AuthResponseData>> {
+  try {
+    await connectDB();
+
+    if (!token) {
+      return { success: false, message: "No Google token provided." };
+    }
+
+    const payload = await verifyGoogleToken(token) as GoogleUserPayload | null;
+    
+    if (!payload || !payload.email) {
+      return { success: false, message: "Invalid Google account." };
+    }
+
+    const result = await authService.googleLogin(payload);
+
+    if (result.success && result.data) {
+      const { token: jwtToken, userId, email } = result.data;
+
+      const cookieStore = await cookies();
+      cookieStore.set("auth_token", jwtToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+      
+      console.log("cookie sotore check  : ",cookieStore);
+      return {
+        success: true,
+        message: result.message,
+        data: { userId, email },
+      };
+    }
+
+    return result as ActionResult<AuthResponseData>;
+  } catch (error: unknown) {
+    console.error("Google Login Action Error:", error);
+    return { success: false, message: "An error occurred during Google authentication." };
   }
 }

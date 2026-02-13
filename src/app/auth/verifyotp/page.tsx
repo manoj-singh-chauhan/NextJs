@@ -16,6 +16,8 @@ export default function VerifyOtpPage() {
   const [isResending, setIsResending] = useState(false);
   
   const [resendTimer, setResendTimer] = useState(60);
+  const [verified, setVerified] = useState(false);
+
 
   const canResend = resendTimer === 0;
 
@@ -42,6 +44,17 @@ export default function VerifyOtpPage() {
     return () => clearTimeout(timer);
   }, [successMessage]);
 
+  useEffect(() => {
+    if (!error) return;
+
+    const timer = setTimeout(() => {
+      setError(null);
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, [error]);
+
+
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsVerifying(true);
@@ -51,14 +64,23 @@ export default function VerifyOtpPage() {
       const result = await verifyOtpAction({ email, otp });
 
       if (result.success) {
-        router.push("/auth/login?verified=true");
-      } else {
+        setError(null);
+        setVerified(true);
+
+        setTimeout(() => {
+          router.push("/auth/login?verified=true");
+        }, 900);
+
+        return;
+      }
+      else {
         setError(result.message);
-        setIsVerifying(false);
       }
     } catch (err) {
       console.error("error occured : ", err);
       setError("Something went wrong. Please try again.");
+    }
+    finally{
       setIsVerifying(false);
     }
   };
@@ -67,16 +89,22 @@ export default function VerifyOtpPage() {
     setIsResending(true);
     setError(null);
 
-    const result = await resendOtpAction(email);
+    try {
+      const result = await resendOtpAction(email);
 
-    if (result.success) {
-      setResendTimer(60); 
-      setOtp("");
-      setSuccessMessage("OTP sent to your email");
-    } else {
-      setError(result.message);
+      if (result.success) {
+        setResendTimer(60);
+        setOtp("");
+        setSuccessMessage("OTP sent to your email");
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      console.error("resend error:", err);
+      setError("Failed to resend OTP. Try again.");
+    } finally {
+      setIsResending(false);
     }
-    setIsResending(false);
   };
 
   return (
@@ -147,6 +175,12 @@ export default function VerifyOtpPage() {
           {successMessage && (
             <p className="text-green-600 text-xs text-center">
               {successMessage}
+            </p>
+          )}
+
+          {verified && (
+            <p className="text-green-600 text-xs text-center">
+              Email verified successfully!
             </p>
           )}
 

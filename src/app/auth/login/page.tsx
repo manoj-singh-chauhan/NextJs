@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect,useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -25,6 +25,17 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
+  useEffect(() => {
+  if (!error) return;
+
+  const timer = setTimeout(() => {
+    setError(null);
+  }, 4000);
+
+  return () => clearTimeout(timer);
+}, [error]);
+
+
   const onSubmit = async (data: LoginInput) => {
     setLoading(true);
     setError(null);
@@ -42,6 +53,8 @@ export default function LoginPage() {
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
       console.error("Login error: ", err);
+    }
+    finally{
       setLoading(false);
     }
   };
@@ -94,7 +107,6 @@ export default function LoginPage() {
               {...register("email")}
               type="email"
               autoComplete="new-email"
-              autoFocus
               placeholder="name@example.com"
               className={`w-full px-3 py-2 border ${errors.email ? "border-red-500" : "border-gray-300"} rounded-lg placeholder-gray-400 text-gray-900 text-sm focus:ring-1 focus:ring-black outline-none transition-all`}
             />
@@ -111,7 +123,7 @@ export default function LoginPage() {
                 Password
               </label>
               <Link
-                href="/auth/forgot-password"
+                href="/auth/forgotpassword"
                 className="text-[11px] font-bold text-black hover:underline underline-offset-2"
               >
                 Forgot password?
@@ -147,11 +159,9 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div role="alert" className="p-2.5 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-700 text-[11px] text-center font-medium">
                 {error}
               </p>
-            </div>
           )}
 
           <button

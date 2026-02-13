@@ -7,17 +7,11 @@ export const authRepository = {
   },
 
   async createUser(
-    data: SignupInput & {
-      password: string;
-      otp: string;
-      otpExpires: Date;
-    },
+   data: SignupInput
   ) {
     return await UserModel.create({
       ...data,
-      isVerified: false,
-      otp: data.otp,
-      otpExpires: data.otpExpires,
+      isVerified: data.isVerified ?? false,
     });
   },
 

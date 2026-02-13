@@ -9,9 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@hcaptcha/react-hcaptcha": "^2.0.2",
     "@hookform/resolvers": "^5.2.2",
+    "@react-oauth/google": "^0.13.4",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
+    "google-auth-library": "^10.5.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.563.0",
     "mongoose": "^9.2.0",

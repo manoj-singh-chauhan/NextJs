@@ -1,30 +1,62 @@
 "use client";
-import { useState } from "react";
+import {useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { signupSchema } from "@/modules/auth/auth.schema";
 import { signupAction } from "@/modules/auth/auth.actions";
-import { SignupInput } from "@/modules/auth/auth.types";
+import { UserSignupForm } from "@/modules/auth/auth.types";
 import { Github } from "lucide-react";
 import { Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
+import Script from "next/script";
+import { googleLoginAction } from "@/modules/auth/auth.actions";
+import { useGoogleLogin } from "@react-oauth/google";
+
 
 export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
+  const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<SignupInput>({
-    resolver: zodResolver(signupSchema),
+ const {
+  register,
+  handleSubmit,
+  formState: { errors },
+} = useForm<UserSignupForm>({ 
+  resolver: zodResolver(signupSchema),
+});
+
+  useEffect(() => {
+    if (!error) return;
+
+    const timer = setTimeout(() => {
+      setError(null);
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, [error]);
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      const result = await googleLoginAction(tokenResponse.access_token);
+      
+      if (result.success) {
+        setSuccess("Login successful!");
+        router.push("/");
+        router.refresh();
+      } else {
+        setError(result.message);
+        setLoading(false);
+      }
+    },
+    onError: () => setError("Google Login Failed"),
   });
 
-  const onSubmit = async (data: SignupInput) => {
+  const onSubmit = async (data: UserSignupForm) => {
     setLoading(true);
     setError(null);
 
@@ -32,19 +64,32 @@ export default function SignupPage() {
       const result = await signupAction(data);
 
       if (result.success) {
-        router.push(`/auth/verifyotp?email=${encodeURIComponent(data.email)}`);
-      } else {
+        setSuccess("Account created successfully!");
+
+        setTimeout(() => {
+          router.push(`/auth/verifyotp?email=${encodeURIComponent(data.email)}`);
+        }, 900);
+
+        return;
+      }
+       else {
         setError(result.message);
-        setLoading(false);
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
       console.error("error occur : ", err);
+    }
+    finally {
       setLoading(false);
     }
   };
 
   return (
+    <>
+    <Script
+      src="https://accounts.google.com/gsi/client"
+      strategy="afterInteractive"
+    />
     <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-[425px] border border-gray-200 rounded-md p-6 bg-white shadow-sm">
         <h1 className="text-2xl font-bold text-center mb-6 text-black tracking-tight">
@@ -54,6 +99,7 @@ export default function SignupPage() {
         <div className="flex gap-2.5 mb-5">
           <button
             type="button"
+            onClick={() => googleLogin()}
             className="flex-1 flex items-center justify-center gap-2 py-2 px-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-xs font-medium text-gray-900"
           >
             <svg className="w-4 h-4" viewBox="0 0 48 48">
@@ -102,7 +148,6 @@ export default function SignupPage() {
             </label>
             <input
               {...register("name")}
-              autoFocus
               placeholder="John Doe"
               className={`w-full px-3 py-2 border ${errors.name ? "border-red-500" : "border-gray-300"} rounded-lg placeholder-gray-400 text-gray-900 text-sm focus:ring-1 focus:ring-black outline-none transition-all`}
             />
@@ -170,13 +215,18 @@ export default function SignupPage() {
               role="alert"
               aria-live="polite"
             >
-              <p className="text-red-700 text-[11px] text-center font-medium">
+              <p className="text-red-700 text-[12px] text-center font-medium">
                 {error}
               </p>
             </div>
           )}
 
-          <button
+          {success && (
+            <p className="text-green-600 text-[12px] text-center font-medium">
+              {success}
+            </p>
+          )}
+            <button
             type="submit"
             disabled={loading}
             className={`w-full py-2.5 bg-black text-white font-semibold rounded-lg transition-all text-sm mt-4 active:scale-[0.98] ${
@@ -196,14 +246,15 @@ export default function SignupPage() {
 
         <p className="text-center text-gray-500 text-[11px] mt-6">
           Already have an account?{" "}
-          <a
+          <Link
             href="/auth/login"
             className="font-bold text-black hover:underline underline-offset-4"
           >
             Sign in
-          </a>
+          </Link>
         </p>
       </div>
     </div>
+    </>
   );
 }

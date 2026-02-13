@@ -15,7 +15,19 @@ const UserSchema = new mongoose.Schema(
 
     password: {
       type: String,
-      required: true,
+      required: false,
+    },
+
+    authProvider: {
+      type: String,
+      enum: ["credentials", "google"],
+      default: "credentials",
+    },
+
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
     },
 
     isVerified: {
@@ -30,7 +42,16 @@ const UserSchema = new mongoose.Schema(
     otpExpires: {
       type: Date,
     },
-    
+
+    resetPasswordOtp: {
+      type: String,
+      default: undefined,
+    },
+
+    resetPasswordOtpExpires: {
+      type: Date,
+      default: undefined,
+    },
   },
   { timestamps: true },
 );
