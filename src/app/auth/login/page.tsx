@@ -7,8 +7,11 @@ import { useRouter } from "next/navigation";
 import { loginSchema } from "@/modules/auth/auth.schema";
 import { loginAction } from "@/modules/auth/auth.actions";
 import { LoginInput } from "@/modules/auth/auth.types";
-import { Github, Eye, EyeOff } from "lucide-react";
+import { Facebook, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import Script from "next/script";
+import { googleLoginAction } from "@/modules/auth/auth.actions";
+import { useGoogleLogin } from "@react-oauth/google";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -59,8 +62,45 @@ export default function LoginPage() {
     }
   };
 
+  const googleLogin = useGoogleLogin({
+      onSuccess: async (tokenResponse) => {
+        setLoading(true);
+        const result = await googleLoginAction(tokenResponse.access_token);
+  
+        if (result.success) {
+          router.push("/");
+          router.refresh();
+        } else {
+          setError(result.message);
+          setLoading(false);
+        }
+      },
+      onError: () => setError("Google Login Failed"),
+    });
+  
+    const handleFacebookLogin = () => {
+      setLoading(true);
+      
+      const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
+      const redirectUri = `${window.location.origin}/auth/facebook/callback`;
+      
+      if (!appId) {
+        setError("Facebook App ID is not configured");
+        setLoading(false);
+        return;
+      }
+      const facebookAuthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=email,public_profile&response_type=code&state=${btoa(Math.random().toString())}`;
+      
+      window.location.href = facebookAuthUrl;
+    };
+
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8">
+    <>
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+      />
+      <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-[425px] border border-gray-200 rounded-md p-6 bg-white shadow-sm">
         <h1 className="text-2xl font-bold text-center mb-6 text-black tracking-tight">
           Welcome back
@@ -68,6 +108,7 @@ export default function LoginPage() {
 
         <div className="flex gap-2.5 mb-5">
           <button
+            onClick={() => googleLogin()}
             type="button"
             className="flex-1 flex items-center justify-center gap-2 py-2 px-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-xs font-medium text-gray-900"
           >
@@ -81,12 +122,13 @@ export default function LoginPage() {
           </button>
 
           <button
-            type="button"
-            className="flex-1 flex items-center justify-center gap-2 py-2 px-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-xs font-medium text-gray-900"
-          >
-            <Github className="w-4 h-4" />
-            GitHub
-          </button>
+              type="button"
+              onClick={handleFacebookLogin}
+              className="flex-1 flex items-center justify-center gap-2 py-2 px-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-xs font-medium text-gray-900"
+            >
+              <Facebook className="w-4 h-4 text-[#1877F2]" />
+              Facebook
+            </button>
         </div>
 
         <div className="relative mb-5">
@@ -193,5 +235,6 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  </>
   );
 }

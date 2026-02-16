@@ -2,8 +2,9 @@ export type SignupInput = {
   name: string;
   email: string;
   password?: string;
-  authProvider?: "credentials" | "google";
+  authProvider?: "credentials" | "google" | "facebook";
   googleId?: string;
+  facebookId?:string;
   isVerified?: boolean;
   otp?:string;
   otpExpires?:Date;

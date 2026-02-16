@@ -243,3 +243,50 @@ export async function googleLoginAction(token: string): Promise<ActionResult<Aut
     return { success: false, message: "An error occurred during Google authentication." };
   }
 }
+
+export async function facebookLoginAction(
+  facebookData: {
+    accessToken: string;
+    userID: string;
+    email: string;
+    name: string;
+  }
+): Promise<ActionResult<AuthResponseData>> {
+  try {
+    await connectDB();
+
+    if (!facebookData.email || !facebookData.userID) {
+      return { success: false, message: "Invalid Facebook account data." };
+    }
+
+    const result = await authService.facebookLogin({
+      facebookId: facebookData.userID,
+      email: facebookData.email,
+      name: facebookData.name,
+    });
+
+    if (result.success && result.data) {
+      const { token: jwtToken, userId, email } = result.data;
+
+      const cookieStore = await cookies();
+      cookieStore.set("auth_token", jwtToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+
+      return {
+        success: true,
+        message: result.message,
+        data: { userId, email },
+      };
+    }
+
+    return result as ActionResult<AuthResponseData>;
+  } catch (error: unknown) {
+    console.error("Facebook Login Action Error:", error);
+    return { success: false, message: "An error occurred during Facebook authentication." };
+  }
+}

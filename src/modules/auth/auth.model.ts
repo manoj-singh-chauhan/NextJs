@@ -20,11 +20,17 @@ const UserSchema = new mongoose.Schema(
 
     authProvider: {
       type: String,
-      enum: ["credentials", "google"],
+      enum: ["credentials", "google", "facebook"],
       default: "credentials",
     },
 
     googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+
+    facebookId: {
       type: String,
       unique: true,
       sparse: true,

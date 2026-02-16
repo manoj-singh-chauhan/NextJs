@@ -14,7 +14,6 @@ import { verifyCaptcha } from "@/lib/captcha";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-
 export const authService = {
   async signup(data: SignupInput): Promise<ActionResult<AuthResponseData>> {
     try {
@@ -195,7 +194,10 @@ export const authService = {
       }
 
       if (!password) {
-        return { success: false, message: "New password is required." };
+        return { 
+          success: false, 
+          message: "password is required." 
+        };
       }
 
       const isMatch = await bcrypt.compare(password, user.password);
@@ -325,8 +327,6 @@ export const authService = {
       user.resetPasswordOtpExpires = newExpiry;
       await user.save();
 
-      console.log(`RESENT Reset OTP for ${email}: ${newOtp}`);
-
       try {
         await sendResetOtpEmail(email, newOtp);
       } catch (mailError) {
@@ -425,6 +425,58 @@ async googleLogin(payload: GoogleUserPayload): Promise<ActionResult<AuthResponse
     } catch (error: unknown) {
       console.error("Google Login Service Error:", error);
       return { success: false, message: "Failed to process Google login." };
+    }
+  },
+
+
+  async facebookLogin(payload: {
+    facebookId: string;
+    email: string;
+    name: string;
+  }): Promise<ActionResult<AuthResponseData & { token: string }>> {
+    try {
+      const { email, name, facebookId } = payload;
+
+      let user = await authRepository.findUserByEmail(email);
+
+      if (!user) {
+        user = await authRepository.createUser({
+          email,
+          name,
+          isVerified: true,
+          authProvider: "facebook",
+          facebookId,
+        });
+      } else {
+        if (!user.isVerified) {
+          user.isVerified = true;
+        }
+
+        if (!user.facebookId) {
+          user.facebookId = facebookId;
+        }
+
+        await user.save();
+      }
+
+      const token = jwt.sign(
+        { userId: user._id.toString(), email: user.email },
+        process.env.JWT_SECRET as string,
+        { expiresIn: "7d" }
+      );
+
+      return {
+        success: true,
+        message: "Facebook login successful!",
+        data: {
+          userId: user._id.toString(),
+          email: user.email,
+          token,
+        },
+      };
+    } catch (error: unknown) {
+      console.error("Facebook Login Service Error:", error);
+      return { success: false, message: "Failed to process Facebook login." };
     }
   },
 };

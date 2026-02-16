@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <div>
       <h1>Welcome</h1>
-      <Link href="/auth/signup" className="text-blue-500 underline">
+      <Link href="/auth/login" className="text-blue-500 underline">
         Go to Signup Page
       </Link>
     </div>
