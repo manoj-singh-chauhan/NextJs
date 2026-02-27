@@ -29,14 +29,14 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-  if (!error) return;
+    if (!error) return;
 
-  const timer = setTimeout(() => {
-    setError(null);
-  }, 4000);
+    const timer = setTimeout(() => {
+      setError(null);
+    }, 4000);
 
-  return () => clearTimeout(timer);
-}, [error]);
+    return () => clearTimeout(timer);
+  }, [error]);
 
 
   const onSubmit = async (data: LoginInput) => {

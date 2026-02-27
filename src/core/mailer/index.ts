@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
 
 export const sendVerificationOtpEmail = async (email: string, otp: string) => {
   return await transporter.sendMail({
-    from: `"CodeQuotient" <${process.env.EMAIL_USER}>`,
+    from: `"Ai_Eval" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: `${otp} is your verification code`,
     html: `
@@ -33,7 +33,7 @@ export const sendVerificationOtpEmail = async (email: string, otp: string) => {
 
 export const sendResetOtpEmail = async (email: string, otp: string) => {
   return await transporter.sendMail({
-    from: `"CodeQuotient" <${process.env.EMAIL_USER}>`,
+    from: `"Ai_eval" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: `${otp} is your password reset code`,
     html: `
